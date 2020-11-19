@@ -12,33 +12,46 @@ public class DoubleAndPrecisionConstructor {
 		assertTrue(mixed.getIntegerPart() == 3);
 		assertTrue(mixed.getNumerator() == 14159);
 		assertTrue(mixed.getDenominator() == 100000);
+		
 	}
 	
-//	@Test
-//	public void mustReduceFractionToSimplestForm() {
-//		Mixed mixed = new Mixed(Math.PI,2);
-//		assertTrue(mixed.getIntegerPart() == 3);
-//		assertTrue(mixed.getNumerator() == 7);
-//		assertTrue(mixed.getDenominator() == 50);
-//	}
-//	
-//	@SuppressWarnings("unused")
-//	@Test (expected = RuntimeException.class)
-//	public void mustNotAcceptNegativeDecimal() {
-//		Mixed mixed = new Mixed(Math.PI,-5);
-//	}
-//	
-//	@SuppressWarnings("unused")
-//	@Test (expected = RuntimeException.class)
-//	public void mustNotAcceptPrecisionBiggerThanItCanHandle() {
-//		int tooManyDecimalHouses = Mixed.MAX_HOUSES + 1;
-//		Mixed mixed = new Mixed(Math.PI,tooManyDecimalHouses);
-//	}
-//		
-//	@SuppressWarnings("unused")
-//	@Test(expected = RuntimeException.class)
-//	public void mustDetectIfCannotAcomodateDouble() {
-//		double biggerThanMaxInt = Integer.MAX_VALUE + 1.5;
-//		Mixed mixed = new Mixed(biggerThanMaxInt,4);
-//	}
+	@Test
+	public void mustReduceFractionToSimplestForm() {
+		Mixed mixed = new Mixed(Math.PI,0.01);
+		assertTrue(mixed.getIntegerPart() == 3);
+		assertTrue(mixed.getNumerator() == 7);
+		assertTrue(mixed.getDenominator() == 50);
+	}
+	
+	@SuppressWarnings("unused")
+	@Test (expected = RuntimeException.class)
+	public void mustNotAcceptNegativePrecision() {
+		Mixed mixed = new Mixed(Math.PI,-0.001);
+	}
+	
+	@SuppressWarnings("unused")
+	@Test (expected = RuntimeException.class)
+	public void mustNotAcceptZeroPrecision() {
+		Mixed mixed = new Mixed(Math.PI,0.0);
+	}
+	
+	@SuppressWarnings("unused")
+	@Test (expected = RuntimeException.class)
+	public void mustNotAcceptPrecisionSmalerThanItCanHandle() {
+		double tooMuchPrecision = Mixed.MAX_PRECISION/10;
+		Mixed mixed = new Mixed(Math.PI,tooMuchPrecision);
+	}
+	
+	@SuppressWarnings("unused")
+	@Test (expected = RuntimeException.class)
+	public void mustNotAcceptPrecisionBiggerThanItCanHandle() {
+		Mixed mixed = new Mixed(Math.PI,3.0);
+	}
+	
+	@SuppressWarnings("unused")
+	@Test(expected = RuntimeException.class)
+	public void mustDetectIfCannotAcomodateDouble() {
+		double biggerThanMaxInt = Integer.MAX_VALUE + 1.5;
+		Mixed mixed = new Mixed(biggerThanMaxInt,0.001);
+	}
 }

@@ -1,20 +1,16 @@
 package br.com.gemsanches.mixedNumber;
 
-import java.lang.constant.Constable;
-import java.lang.constant.ConstantDesc;
-import java.lang.invoke.MethodHandles.Lookup;
-import java.util.Optional;
+public class Mixed extends Number implements Comparable<Mixed>{
 
-public class Mixed extends Number
-	implements Comparable<Mixed>, Constable, ConstantDesc{
-
-	private static final long serialVersionUID = -6480044537610067970L;
+	private static final long serialVersionUID = 5626564375058500028L;
+	
+	public static final int   MAX_HOUSES = 10;//limited by Integer.MAX_VALUE
+	public static final double   MAX_PRECISION = Math.pow(0.1, MAX_HOUSES);
 	
 	private int integerPart;
 	private int numerator;
 	private int denominator = 1;
-	public static final int   MAX_HOUSES = 10;//limited by Integer.MAX_VALUE
-	public static final double   MAX_PRECISION = Math.pow(0.1, MAX_HOUSES);
+	
 	
 	public Mixed (int i) {
 		this.integerPart = i;
@@ -23,63 +19,68 @@ public class Mixed extends Number
 	}
 	
 	public Mixed (int integer, int numerator, int denominator) {
-		if(denominator == 0) {
-			throw new ArithmeticException("Denominator cannot be zero.");
-		}
-		if(numerator < 0 || denominator < 0) {
-			throw new ArithmeticException("Fraction components does not carry signal.");
-		}
 		this.integerPart = integer;
 		this.numerator = numerator;
 		this.denominator = denominator;
-		Mixed.simplifyFraction(this);
-		Mixed.detectOverflow(this.integerPart,integer);
+		this.verifyFractionComponents();
+		this.safelyReduceFraction();
 	}
 	
 	public Mixed (Mixed m) {
 		this.integerPart = m.integerPart;
 		this.numerator = m.numerator;
 		this.denominator = m.denominator;
-		Mixed.simplifyFraction(this);
-		Mixed.detectOverflow(this.integerPart,m.integerPart);
+		this.safelyReduceFraction();
 	}
 	
 	public Mixed (double d, int numberOfDecimalHouses) {
-		if(numberOfDecimalHouses<0 || numberOfDecimalHouses>MAX_HOUSES) {
-			throw new RuntimeException("Invalid number of decimal houses.");
-		}
-		if(d > (double) Integer.MAX_VALUE) {
-			throw new RuntimeException("Number too big to suport.");
-		}
+		double decimalPart;
+		double powerOfTen = Math.pow(10, numberOfDecimalHouses);
+		this.verifyDoubleSuport(d);
+		this.verifyNumberOfHouses(numberOfDecimalHouses);
 		this.integerPart = (int) d;
-		double decimalPart = (d-this.integerPart) * Math.pow(10, numberOfDecimalHouses);
+		decimalPart = (d-this.integerPart) * powerOfTen;
 		this.numerator = (int) decimalPart;
-		this.denominator = (int) Math.pow(10, numberOfDecimalHouses);
-		Mixed.simplifyFraction(this);
+		this.denominator = (int) powerOfTen;
+		this.safelyReduceFraction();
 	}
 	
+	/**
+	 * @param precision Must be between 1 and MAX_PRECISION
+	 * */
 	public Mixed (double d, double precision) {
+		double decimalPart;
+		this.verifyDoubleSuport(d);
+		this.verifyPrecision(precision);
 		this.integerPart = (int) d;
-				
-		//this.numerator = ???
-				
-		this.denominator = (int) (1/precision);
+		this.denominator = (int) Math.round(1/precision);
+		decimalPart = d - this.integerPart;
+		decimalPart *= this.denominator;
+		this.numerator = (int) decimalPart;
+		this.safelyReduceFraction();
 	}
 	
-	private static void detectOverflow(int integerPartAfter, int integerPartBefore) {
-		if(integerPartBefore > integerPartAfter) {
+	private void safelyReduceFraction() {
+		//Overflow detection MUST be executed before fraction simplification.
+		this.detectOverflow();
+		this.simplifyFraction();
+	}
+	
+	private void detectOverflow() {
+		int integerPartAfter = this.integerPart+(this.numerator/this.denominator);
+		if(this.integerPart > integerPartAfter) {
 			throw new RuntimeException("An overflow have ocuried.");
 		}
 	}
 
-	private static void simplifyFraction(Mixed mixed) {
-		while(mixed.numerator >= mixed.denominator) {
-			mixed.numerator -= mixed.denominator;
-			mixed.integerPart ++;
+	private void simplifyFraction() {
+		while(this.numerator >= this.denominator) {
+			this.numerator -= this.denominator;
+			this.integerPart ++;
 		}
-		int gcd = gcd(mixed.numerator,mixed.denominator);
-		mixed.numerator /= gcd;
-		mixed.denominator /= gcd;
+		int gcd = gcd(this.numerator,this.denominator);
+		this.numerator /= gcd;
+		this.denominator /= gcd;
 	}
 
 	private static int gcd(int p, int q) {
@@ -89,6 +90,34 @@ public class Mixed extends Number
 	        return gcd(q, p % q);
 	    }
 	
+	private void verifyFractionComponents() {
+		if(this.denominator == 0) {
+			throw new ArithmeticException("Denominator cannot be zero.");
+		}
+		if(this.numerator < 0 || this.denominator < 0) {
+			throw new ArithmeticException("Fraction components does not carry signal.");
+		}
+	}
+	
+	private void verifyDoubleSuport(double d) {
+		if(d > Integer.MAX_VALUE) {
+			throw new RuntimeException("Number too big to suport.");
+		}
+	}
+	
+	private void verifyNumberOfHouses(int numberOfDecimalHouses) {
+		if(numberOfDecimalHouses < 0 || numberOfDecimalHouses > MAX_HOUSES) {
+			throw new RuntimeException("Invalid number of decimal houses.");
+		}
+	}
+	
+	private void verifyPrecision(double precision) {
+		if(precision < MAX_PRECISION || precision > 1) {
+			throw new RuntimeException("Invalid precision.");
+		}
+	}
+	
+		
 	public int getIntegerPart() {
 		return integerPart;
 	}
@@ -102,10 +131,54 @@ public class Mixed extends Number
 	}
 	
 	
+	@Override
+	public String toString() {
+		if(this.numerator == 0) {
+			return String.valueOf(this.integerPart);
+		}
+		return this.integerPart+
+			   "&("+
+			   this.numerator+
+			   "/"+
+			   this.denominator+
+			   ")";
+	}
 	
-	
-	
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (this.getClass() != obj.getClass()) {
+			return false;
+		}
+		Mixed other = (Mixed) obj;
+		if (this.denominator != other.denominator) {
+			return false;
+		}
+		if (this.integerPart != other.integerPart) {
+			return false;
+		}
+		if (this.numerator != other.numerator) {
+			return false;
+		}
+		return true;
+	}
 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + denominator;
+		result = prime * result + integerPart;
+		result = prime * result + numerator;
+		return result;
+	}
+
+	
 	@Override
 	public int intValue() {
 		return this.integerPart;
@@ -113,39 +186,31 @@ public class Mixed extends Number
 
 	@Override
 	public long longValue() {
-		// TODO Auto-generated method stub
-		return 0;
+		return this.integerPart;
 	}
 
 	@Override
 	public float floatValue() {
-		// TODO Auto-generated method stub
-		return 0;
+		return this.integerPart + ((float)this.numerator/this.denominator);
 	}
 
 	@Override
 	public double doubleValue() {
-		// TODO Auto-generated method stub
-		return 0;
+		return this.integerPart + ((double)this.numerator/this.denominator);
 	}
 
+	
 	@Override
-	public Object resolveConstantDesc(Lookup lookup) throws ReflectiveOperationException {
-		// TODO Auto-generated method stub
-		return null;
+	public int compareTo(Mixed other) {
+		int thisNumeratorAsSimpleFraction=this.integerPart*this.denominator
+										  +this.numerator;
+		int otherNumeratorAsSimpleFraction=other.integerPart*other.denominator
+										   +other.numerator;
+		return thisNumeratorAsSimpleFraction-otherNumeratorAsSimpleFraction;
 	}
-
-	@Override
-	public Optional<? extends ConstantDesc> describeConstable() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int compareTo(Mixed o) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
+	
+	
+	
 	
 	public Mixed convertFrom(double d) {
 		// TODO Implement recurring decimal detection
